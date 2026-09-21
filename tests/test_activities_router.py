@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.backend import database
 from src.backend.routers import activities
 
 
@@ -30,6 +31,21 @@ class FakeActivitiesCollection:
             results.append(document.copy())
 
         return results
+
+
+class FakeDatabaseCollection:
+    def __init__(self, count):
+        self.count = count
+        self.updated = []
+
+    def count_documents(self, _query):
+        return self.count
+
+    def update_one(self, query, update):
+        self.updated.append((query, update))
+
+    def insert_one(self, _document):
+        raise AssertionError("insert_one should not be called in this test")
 
 
 class GetActivitiesDifficultyTests(unittest.TestCase):
@@ -100,6 +116,24 @@ class GetActivitiesDifficultyTests(unittest.TestCase):
             },
         )
         self.assertEqual(set(result.keys()), {"Chess Club", "Art Club"})
+
+
+class InitDatabaseDifficultyTests(unittest.TestCase):
+    def test_init_database_backfills_missing_sample_difficulties(self):
+        fake_activities = FakeDatabaseCollection(count=1)
+        fake_teachers = FakeDatabaseCollection(count=1)
+
+        with (
+            patch.object(database, "activities_collection", fake_activities),
+            patch.object(database, "teachers_collection", fake_teachers),
+        ):
+            database.init_database()
+
+        difficulty_count = sum(
+            1 for details in database.initial_activities.values() if "difficulty" in details
+        )
+        self.assertEqual(len(fake_activities.updated), difficulty_count)
+        self.assertEqual(fake_teachers.updated, [])
 
 
 if __name__ == "__main__":

@@ -304,6 +304,138 @@ document.addEventListener("DOMContentLoaded", () => {
     return details.schedule;
   }
 
+  function getActivityShareUrl(activityName) {
+    const url = new URL(window.location.href);
+    url.hash = `activity=${encodeURIComponent(activityName)}`;
+    return url.toString();
+  }
+
+  function getSharedActivityFromHash() {
+    const hashValue = window.location.hash.startsWith("#")
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+
+    const hashParams = new URLSearchParams(hashValue);
+    return hashParams.get("activity");
+  }
+
+  function buildShareMessage(activityName, details) {
+    return `Check out ${activityName} at Mergington High School! ${details.description} Schedule: ${formatSchedule(
+      details
+    )}.`;
+  }
+
+  async function copyText(text) {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+
+    const helperTextArea = document.createElement("textarea");
+    helperTextArea.value = text;
+    helperTextArea.setAttribute("readonly", "");
+    helperTextArea.style.position = "absolute";
+    helperTextArea.style.left = "-9999px";
+    document.body.appendChild(helperTextArea);
+    helperTextArea.select();
+    document.execCommand("copy");
+    document.body.removeChild(helperTextArea);
+  }
+
+  async function copyActivityLink(activityName) {
+    try {
+      await copyText(getActivityShareUrl(activityName));
+      showMessage(`Link copied for ${activityName}.`, "success");
+    } catch (error) {
+      console.error("Error copying link:", error);
+      showMessage("Couldn't copy the link. Please try again.", "error");
+    }
+  }
+
+  async function shareActivity(activityName, details) {
+    const shareUrl = getActivityShareUrl(activityName);
+    const shareMessage = buildShareMessage(activityName, details);
+
+    if (!navigator.share) {
+      await copyActivityLink(activityName);
+      return;
+    }
+
+    try {
+      await navigator.share({
+        title: `${activityName} | Mergington High School Activities`,
+        text: shareMessage,
+        url: shareUrl,
+      });
+    } catch (error) {
+      if (error.name === "AbortError") {
+        return;
+      }
+
+      console.error("Error sharing activity:", error);
+      showMessage("Couldn't open sharing options. Please try again.", "error");
+    }
+  }
+
+  function createShareActions(activityName, details) {
+    const shareActions = document.createElement("div");
+    shareActions.className = "share-actions";
+
+    const shareButton = document.createElement("button");
+    shareButton.type = "button";
+    shareButton.className = "share-action-button";
+    shareButton.textContent = navigator.share ? "Share" : "Share Link";
+    shareButton.addEventListener("click", () => {
+      shareActivity(activityName, details);
+    });
+
+    const copyLinkButton = document.createElement("button");
+    copyLinkButton.type = "button";
+    copyLinkButton.className = "share-action-button";
+    copyLinkButton.textContent = "Copy Link";
+    copyLinkButton.addEventListener("click", () => {
+      copyActivityLink(activityName);
+    });
+
+    const emailLink = document.createElement("a");
+    emailLink.className = "share-action-button share-action-link";
+    emailLink.href = `mailto:?subject=${encodeURIComponent(
+      `Check out ${activityName}`
+    )}&body=${encodeURIComponent(
+      `${buildShareMessage(activityName, details)} ${getActivityShareUrl(
+        activityName
+      )}`
+    )}`;
+    emailLink.textContent = "Email";
+
+    shareActions.append(shareButton, copyLinkButton, emailLink);
+    return shareActions;
+  }
+
+  function focusSharedActivityCard() {
+    const sharedActivityName = getSharedActivityFromHash();
+    const activityCards = document.querySelectorAll(".activity-card");
+
+    activityCards.forEach((card) => {
+      card.classList.remove("shared-activity-card");
+    });
+
+    if (!sharedActivityName) {
+      return;
+    }
+
+    const matchingCard = Array.from(activityCards).find(
+      (card) => card.dataset.activityName === sharedActivityName
+    );
+
+    if (!matchingCard) {
+      return;
+    }
+
+    matchingCard.classList.add("shared-activity-card");
+    matchingCard.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   // Function to determine activity type (this would ideally come from backend)
   function getActivityType(activityName, description) {
     const name = activityName.toLowerCase();
@@ -470,12 +602,15 @@ document.addEventListener("DOMContentLoaded", () => {
     Object.entries(filteredActivities).forEach(([name, details]) => {
       renderActivityCard(name, details);
     });
+
+    focusSharedActivityCard();
   }
 
   // Function to render a single activity card
   function renderActivityCard(name, details) {
     const activityCard = document.createElement("div");
     activityCard.className = "activity-card";
+    activityCard.dataset.activityName = name;
 
     // Calculate spots and capacity
     const totalSpots = details.max_participants;
@@ -586,6 +721,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    activityCard.appendChild(createShareActions(name, details));
 
     activitiesList.appendChild(activityCard);
   }
@@ -860,6 +997,8 @@ document.addEventListener("DOMContentLoaded", () => {
     setDayFilter,
     setTimeRangeFilter,
   };
+
+  window.addEventListener("hashchange", focusSharedActivityCard);
 
   // Initialize app
   checkAuthentication();

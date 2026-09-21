@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const timeFilters = document.querySelectorAll(".time-filter");
 
   // Authentication elements
+  const themeToggle = document.getElementById("theme-toggle");
   const loginButton = document.getElementById("login-button");
   const userInfo = document.getElementById("user-info");
   const displayName = document.getElementById("display-name");
@@ -43,6 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Authentication state
   let currentUser = null;
+  let currentTheme = "light";
 
   // Time range mappings for the dropdown
   const timeRanges = {
@@ -64,6 +66,25 @@ document.addEventListener("DOMContentLoaded", () => {
     if (activeTimeFilter) {
       currentTimeRange = activeTimeFilter.dataset.time;
     }
+  }
+
+  function updateThemeToggle() {
+    const isDarkMode = currentTheme === "dark";
+    themeToggle.setAttribute("aria-pressed", isDarkMode.toString());
+    themeToggle.innerHTML = isDarkMode
+      ? '<span aria-hidden="true">☀️</span><span>Light mode</span>'
+      : '<span aria-hidden="true">🌙</span><span>Dark mode</span>';
+  }
+
+  function applyTheme(theme) {
+    currentTheme = theme === "dark" ? "dark" : "light";
+    document.documentElement.dataset.theme = currentTheme;
+    localStorage.setItem("theme", currentTheme);
+    updateThemeToggle();
+  }
+
+  function initializeTheme() {
+    applyTheme(localStorage.getItem("theme") || "light");
   }
 
   // Function to set day filter
@@ -235,6 +256,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Event listeners for authentication
+  themeToggle.addEventListener("click", () => {
+    applyTheme(currentTheme === "dark" ? "light" : "dark");
+  });
   loginButton.addEventListener("click", openLoginModal);
   logoutButton.addEventListener("click", logout);
   closeLoginModal.addEventListener("click", closeLoginModalHandler);
@@ -862,6 +886,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // Initialize app
+  initializeTheme();
   checkAuthentication();
   initializeFilters();
   fetchActivities();

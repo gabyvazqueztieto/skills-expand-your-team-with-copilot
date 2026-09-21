@@ -1,5 +1,6 @@
 /* Color palette */
 :root {
+  color-scheme: light;
   /* Primary colors */
   --primary: #1a237e;
   --primary-light: #534bae;
@@ -32,6 +33,33 @@
   --info-light: #d1ecf1;
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --primary: #9fa8da;
+  --primary-light: #c5cae9;
+  --primary-dark: #7986cb;
+  --primary-text: #111827;
+  --secondary: #ffb74d;
+  --secondary-light: #ffcc80;
+  --secondary-dark: #fb8c00;
+  --secondary-text: #1f2937;
+  --background: #111827;
+  --surface: #1f2937;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --border: #374151;
+  --border-light: #4b5563;
+  --border-focus: #9ca3af;
+  --success: #81c784;
+  --success-light: #1b4332;
+  --warning: #ffb74d;
+  --warning-light: #4a3720;
+  --error: #ef9a9a;
+  --error-light: #4c1d1d;
+  --info: #81d4fa;
+  --info-light: #163046;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -48,6 +76,7 @@ body {
   padding: 12px;
   background-color: var(--background);
   font-size: 0.9rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 header {
@@ -617,6 +646,9 @@ footer {
   position: absolute;
   top: 10px;
   right: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 #user-status {
